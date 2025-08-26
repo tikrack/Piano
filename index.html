@@ -113,6 +113,32 @@
         {note: "C8", freq: 4186.01}
     ];
 
+    function generatePianoFrequencies(octaves = 7) {
+        const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const baseOctave = 0;
+
+        let frequencies = [];
+
+        for (let octave = baseOctave; octave < baseOctave + octaves; octave++) {
+            for (let i = 0; i < notes.length; i++) {
+                const note = notes[i];
+                const midiNumber = (octave * 12) + i;
+
+                const freq = 440 * Math.pow(2, (midiNumber - 69) / 12);
+
+                frequencies.push({
+                    note: note + octave,
+                    freq: freq.toFixed(2)
+                });
+            }
+        }
+
+        return frequencies;
+    }
+
+    console.log(generatePianoFrequencies(3));
+
+
     const play = (freq) => {
         if (!ctx || ctx.state === "closed") {
             ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -158,7 +184,10 @@
 
     window.onload = () => {
         notes.map((item, index) => {
-            elm_wrapper.insertAdjacentHTML("beforeend", `<button freq="${item.freq}">${item.note}</button>`)
+            const isSharp = item.note.includes("#");
+            elm_wrapper.insertAdjacentHTML("beforeend",
+                `<button freq="${item.freq}" class="${isSharp ? "black" : "white"}">${item.note}</button>`
+            )
         })
 
         let pin_buttons = document.querySelectorAll(".wrapper button")
