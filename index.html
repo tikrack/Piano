@@ -7,16 +7,20 @@
 </head>
 <body>
 <button id="start">Start 101 Hz</button>
-<button id="stop" disabled>Stop</button>
+<button id="stop">Stop</button>
 <script>
-    let ctx, osc, gain;
+    let ctx;
+    const oscillators = {};
 
     const play = (freq) => {
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
-        osc = ctx.createOscillator();
-        gain = ctx.createGain();
+        if (!ctx || ctx.state === "closed") {
+            ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
 
-        osc.type = 'sine';
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sine";
         osc.frequency.setValueAtTime(freq, ctx.currentTime);
 
         gain.gain.setValueAtTime(0, ctx.currentTime);
@@ -24,21 +28,37 @@
 
         osc.connect(gain).connect(ctx.destination);
         osc.start();
-    }
+
+        oscillators[freq] = {osc, gain};
+    };
 
     const stop = (freq) => {
+        const node = oscillators[freq];
+        if (!node) return;
+
+        const {osc, gain} = node;
         const t = ctx.currentTime;
+
         gain.gain.cancelScheduledValues(t);
         gain.gain.setValueAtTime(gain.gain.value, t);
         gain.gain.linearRampToValueAtTime(0, t + 0.03);
+
         osc.stop(t + 0.04);
-        setTimeout(() => ctx.close(), 80);
-    }
+
+        delete oscillators[freq];
+
+        if (Object.keys(oscillators).length === 0) {
+            setTimeout(() => ctx.close(), 100);
+        }
+    };
+
 
     document.getElementById('start').onclick = () => {
         play(200)
     };
+    document.getElementById('stop').onclick = () => {
+        stop(33)
+    };
 </script>
-
 </body>
 </html>
