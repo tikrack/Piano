@@ -3,97 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Document</title>
+    <title>Piano | @Tikrack</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            background: lightgreen;
+            font-family: sans-serif;
+        }
+
+        .wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            padding-inline: 50px;
+            row-gap: 20px;
+            justify-content: center;
+        }
+
+        .wrapper button {
+            width: 65px;
+            height: 200px;
+            border: 1px solid lightgray;
+            background-color: white;
+            border-radius: 0 0 10px 10px;
+            transform-origin: top;
+            cursor: pointer;
+
+            &.white {
+                box-shadow: 0 10px 0 0 #aaaaaa;
+            }
+        }
+
+        .wrapper button:active {
+            box-shadow: none;
+            transform: translateY(10px);
+        }
+
+        .wrapper button.black {
+            background: black;
+            color: white;
+            height: 140px;
+            margin-left: -20px;
+            margin-right: -20px;
+            z-index: 1;
+            border: 0;
+        }
+    </style>
 </head>
 <body>
-
 <div class="wrapper"></div>
-
 <script>
     let ctx;
-    const elm_wrapper = document.querySelector('.wrapper');
-    const play_delay = 200;
+    const wrapper = document.querySelector('.wrapper');
     const oscillators = {};
+    const play_delay = 200;
 
     function generateAudiblePianoNotes() {
         const notes = [];
         const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-        const minFreq = 129;
+        const minFreq = 130;
         const maxFreq = 16000;
-
         for (let n = 1; n <= 88; n++) {
             const freq = 440 * Math.pow(2, (n - 49) / 12);
             if (freq < minFreq || freq > maxFreq) continue;
-
             const octave = Math.floor((n + 8) / 12);
             const noteName = noteNames[(n + 8) % 12] + octave;
-
-            notes.push({ note: noteName, freq: parseFloat(freq.toFixed(2)) });
+            notes.push({note: noteName, freq: parseFloat(freq.toFixed(2))});
         }
-
         return notes;
     }
 
     const play = (freq) => {
-        if (!ctx || ctx.state === "closed") {
-            ctx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-
+        if (!ctx || ctx.state === "closed") ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-
-        osc.type = "sine"; // ["sawtooth", "triangle"]
-
+        osc.type = "sine";
         osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
         const now = ctx.currentTime;
-
         gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.4, now + 0.01);
-
+        gain.gain.linearRampToValueAtTime(0.4, now + 0.005);
         osc.connect(gain).connect(ctx.destination);
         osc.start(now);
-
-        oscillators[freq] = {osc, gain};
-    };
+        if (!oscillators[freq]) oscillators[freq] = [];
+        oscillators[freq].push({osc, gain});
+    }
 
     const stop = (freq) => {
-        const node = oscillators[freq];
-        if (!node) return;
-
+        if (!oscillators[freq] || oscillators[freq].length === 0) return;
+        const node = oscillators[freq].shift();
         const {osc, gain} = node;
         const t = ctx.currentTime;
-
         gain.gain.cancelScheduledValues(t);
         gain.gain.setValueAtTime(gain.gain.value, t);
         gain.gain.linearRampToValueAtTime(0, t + 0.1);
-
         osc.stop(t + 0.15);
-
-        delete oscillators[freq];
-
-        if (Object.keys(oscillators).length === 0) {
-            setTimeout(() => ctx.close(), 200);
-        }
-    };
+        if (Object.keys(oscillators).every(k => oscillators[k].length === 0)) setTimeout(() => ctx.close(), 200);
+    }
 
     window.onload = () => {
-        generateAudiblePianoNotes().map((item, index) => {
+        generateAudiblePianoNotes().map(item => {
             const isSharp = item.note.includes("#");
-            elm_wrapper.insertAdjacentHTML("beforeend",
-                `<button freq="${item.freq}" class="${isSharp ? "black" : "white"}">${item.note}</button>`
-            )
-        })
-
-        let pin_buttons = document.querySelectorAll(".wrapper button")
-
-        pin_buttons.forEach(button => {
-            button.addEventListener("click", (e) => {
-                const freq = e.target.attributes?.["freq"]?.value
+            wrapper.insertAdjacentHTML("beforeend",
+                `<button freq="${item.freq}" class="${isSharp ? 'black' : 'white'}">${item.note}</button>`
+            );
+        });
+        const buttons = document.querySelectorAll(".wrapper button");
+        buttons.forEach(btn => {
+            btn.addEventListener("click", e => {
+                const freq = parseFloat(e.target.getAttribute("freq"));
                 play(freq);
-                setTimeout(() => stop(freq), play_delay)
-            })
-        })
+                setTimeout(() => stop(freq), play_delay);
+            });
+        });
     }
 </script>
 </body>
