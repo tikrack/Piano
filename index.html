@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Document</title>
+</head>
+<body>
+<button id="start">Start 101 Hz</button>
+<button id="stop" disabled>Stop</button>
+<script>
+    let ctx, osc, gain;
+
+    const play = (freq) => {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        osc = ctx.createOscillator();
+        gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+    }
+
+    const stop = (freq) => {
+        const t = ctx.currentTime;
+        gain.gain.cancelScheduledValues(t);
+        gain.gain.setValueAtTime(gain.gain.value, t);
+        gain.gain.linearRampToValueAtTime(0, t + 0.03);
+        osc.stop(t + 0.04);
+        setTimeout(() => ctx.close(), 80);
+    }
+
+    document.getElementById('start').onclick = () => {
+        play(200)
+    };
+</script>
+
+</body>
+</html>
