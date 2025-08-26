@@ -20,14 +20,17 @@
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
 
-        osc.type = "sine";
+        osc.type = "sine"; // ["sawtooth", "triangle"]
+
         osc.frequency.setValueAtTime(freq, ctx.currentTime);
 
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+        const now = ctx.currentTime;
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.4, now + 0.01);
 
         osc.connect(gain).connect(ctx.destination);
-        osc.start();
+        osc.start(now);
 
         oscillators[freq] = {osc, gain};
     };
@@ -41,23 +44,21 @@
 
         gain.gain.cancelScheduledValues(t);
         gain.gain.setValueAtTime(gain.gain.value, t);
-        gain.gain.linearRampToValueAtTime(0, t + 0.03);
+        gain.gain.linearRampToValueAtTime(0, t + 0.1);
 
-        osc.stop(t + 0.04);
+        osc.stop(t + 0.15);
 
         delete oscillators[freq];
 
         if (Object.keys(oscillators).length === 0) {
-            setTimeout(() => ctx.close(), 100);
+            setTimeout(() => ctx.close(), 200);
         }
     };
 
 
     document.getElementById('start').onclick = () => {
-        play(200)
-    };
-    document.getElementById('stop').onclick = () => {
-        stop(33)
+        play(440.000)
+        setTimeout(() => stop(440.000), 200)
     };
 </script>
 </body>
